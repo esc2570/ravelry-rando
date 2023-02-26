@@ -5,7 +5,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import Grid2 from '@mui/material/Unstable_Grid2';
-import {TextField, FormLabel, Checkbox, Button, Select, MenuItem, InputLabel, FormControl, FormGroup, FormControlLabel} from '@mui/material';
+import {TextField, Radio, RadioGroup, FormLabel, Checkbox, Button, Select, MenuItem, InputLabel, FormControl, FormGroup, FormControlLabel} from '@mui/material';
 import {createTheme,ThemeProvider} from '@mui/material/styles';
 import { Buffer } from 'buffer';
 
@@ -37,20 +37,12 @@ class App extends React.Component
       authPassword:"BMy/6ZUx4XslJ6tg3VvpCkbOtJWVMb+18mXMkkOt",
       bundles: [],
       selectedBundle:[],
-      locationsSelected:{
-        favorites: false,
-        bundles: false,
-        library: false,
-        queue: false
-      },
-      craft:{
-        crochet: false,
-        knitting: false
-      },
+      craft:"",
       free:false,
       loweryardage:0,
       upperyardage:0,
-      yarnweight:""
+      yarnweight:"",
+      foundbundle:[]
     }
   }
 
@@ -110,16 +102,8 @@ class App extends React.Component
     this.setState({locationsSelected:locations});
   }
 
-  updateCrochetCraft = (e) => {
-    const craft = this.state.craft;
-    craft.crochet=e.target.checked;
-    this.setState({craft:craft});
-  }
-
-  updateKnittingCraft = (e) => {
-    const craft = this.state.craft;
-    craft.knitting=e.target.checked;
-    this.setState({craft:craft});
+  updateCraft = (e) => {
+    this.setState({craft:e.target.value});
   }
 
   updateFree = (e) => {
@@ -134,8 +118,45 @@ class App extends React.Component
     this.setState({upperyardage: e.target.value});
   }
 
+  weightSelect = (e) =>{
+    this.setState({yarnweight: e.target.value})
+  }
+
+  findPattern = (e) =>{
+    
+  }
+
+  randomize = () => {
+    let patterns = [];
+    const url = this.state.urlBase + "/people/"+this.state.account+"/bundles/"+this.state.selectedBundle.id+".json";
+    const h = new Headers();
+    h.append("Authorization", "Basic "+ (Buffer.from(this.state.authUsername+":"+this.state.authPassword).toString('base64')));
+    return fetch(url, {method: 'GET', headers:h})
+    .then(
+    (response) => 
+    {
+      if(response.ok){
+        
+        return (response.json());
+      } 
+      else{
+        console.log("HTTP error:" + response.status + ":" +  response.statusText);
+        return ([ ["status ", response.status]]);
+      }
+    })
+    .then(responseData => {
+      patterns = responseData.bundle.bundled_items;
+      console.log(patterns[Math.floor(Math.random()*(patterns.length+1))]);
+    })
+    .catch((error) =>{
+      console.log(error);
+    })
+    
+  }
+
   render() 
   {
+    const weights = ["Thread", "Cobweb", "Lace", "Light Fingering", "Fingering", "Sport", "DK", "Worseted", "Aran", "Bulky", "Super Bulky", "Jumbo"]
     return (
       <div className="App">
         <ThemeProvider theme={theme}>
@@ -151,27 +172,8 @@ class App extends React.Component
             </Grid2>
             
             <Grid2 container>
-              <Grid2 xs>
-                <FormControl sx={{m:4}} component="fieldset"variant="standard">
-                <FormLabel>Location of pattern</FormLabel>
-                  <FormGroup>
-                    <FormControlLabel label="Favorites" control={
-                      <Checkbox name="favorites" checked={this.state.locationsSelected.favorites} onChange={this.updateFavoritesLocation}/>
-                    }/>
-                    <FormControlLabel label="Bundles" control={
-                      <Checkbox name="bundles" checked={this.state.locationsSelected.bundles} onChange={this.updateBundlesLocation}/>
-                    }/>
-                    <FormControlLabel label="Library" control={
-                      <Checkbox name="library" checked={this.state.locationsSelected.library} onChange={this.updateLibraryLocation}/>
-                    }/>
-                    <FormControlLabel label="Queue" control={
-                      <Checkbox name="queue" checked={this.state.locationsSelected.queue} onChange={this.updateQueueLocation}/>
-                    }/>
-                  </FormGroup>
-                </FormControl>
-              </Grid2>
               <Grid2 xs display="flex" justifyContent="center" alignItems="center">
-                <FormControl sx={{m:1, minWidth:150}} disabled={!this.state.locationsSelected.bundles}>
+                <FormControl sx={{m:1, minWidth:150}}>
                   <InputLabel id="bundle-select-label">Bundles</InputLabel>
                   <Select id="bundle-select" labelId='bundle-select-label' autowidth onChange={this.bundleSelect} value={this.state.selectedBundle.name} label="Bundle">
                     {this.state.bundles.map(bundle=>(<MenuItem key={bundle.id} value={bundle}>{bundle.name}</MenuItem>))}
@@ -186,31 +188,41 @@ class App extends React.Component
               </Grid2>
             </Grid2>
 
-            <Grid2 container>
-              <Grid2 xs>
+            <Grid2 container >
+              <Grid2 xs={2}>
               <FormControl sx={{m:3}} component="fieldset"variant="standard">
                 <FormLabel>Craft Type</FormLabel>
-                  <FormGroup>
-                    <FormControlLabel label="Crochet" control={
-                      <Checkbox name="crochet" checked={this.state.craft.crochet} onChange={this.updateCrochetCraft}/>
-                    }/>
-                    <FormControlLabel label="Knitting" control={
-                      <Checkbox name="knitting" checked={this.state.craft.knitting} onChange={this.updateKnittingCraft}/>
-                    }/>
-                  </FormGroup>
+                  
+                  <RadioGroup defaultValue="crochet" name="craft-radios" onChange={this.updateCraft}>
+                    <FormControlLabel value="crochet" control={<Radio/>} label="Crochet"/>
+                    <FormControlLabel value="knitting" control={<Radio/>} label="Knitting"/>
+                  </RadioGroup>
                 </FormControl>
               </Grid2>
 
-              <Grid2 sm display="flex" justifyContent="center" alignItems="center">
+              <Grid2 sm={2} display="flex" justifyContent="center" alignItems="center">
                 <FormControlLabel label="Free?" control={
                   <Checkbox aame="free" checked={this.state.free} onChange={this.updateFree}/>
                 }/>
               </Grid2>
 
-              <Grid2 m display="flex" justifyContent="center" alignItems="center">
+              <Grid2 m={2} display="flex" justifyContent="center" alignItems="center">
                 <TextField id="range-one-txt" label="Lower Limit" variant="outlined" onChange={this.updateLowerLimit}/>
                 <p>-</p>
                 <TextField id="range-two-txt" label="Upper Limit" variant="outlined" onChange={this.updateUpperLimit}/>
+              </Grid2>
+
+              <Grid2 sm={2} display="flex" justifyContent="center" alignItems="center">
+                <FormControl sx={{m:1, minWidth:150}}>
+                  <InputLabel id="weight-select-label">Yarn Weight</InputLabel>
+                  <Select id="weight-select" labelId='weight-select-label' autowidth onChange={this.weightSelect} value={this.state.yarnweight} label="Weights">
+                    {weights.map(weight=>(<MenuItem key={weight} value={weight}>{weight}</MenuItem>))}
+                  </Select>
+                </FormControl>
+              </Grid2>
+
+              <Grid2 lg={12} display="flex" justifyContent="center" alignItems="center">
+                <Button variant="contained" size="medium" color="primary" onClick={this.randomize}>Randomize!</Button>
               </Grid2>
             </Grid2>
           </header>
