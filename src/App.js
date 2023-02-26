@@ -5,7 +5,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import Grid2 from '@mui/material/Unstable_Grid2';
-import {TextField, Card, CardContent, CardMedia, Typography, CardActionArea, Radio, RadioGroup, FormLabel, Checkbox, Button, Select, MenuItem, InputLabel, FormControl, FormGroup, FormControlLabel} from '@mui/material';
+import {TextField, CircularProgress, Card, CardContent, CardMedia, Typography, CardActionArea, Radio, RadioGroup, FormLabel, Checkbox, Button, Select, MenuItem, InputLabel, FormControl, FormGroup, FormControlLabel} from '@mui/material';
 import {createTheme,ThemeProvider} from '@mui/material/styles';
 import { Buffer } from 'buffer';
 
@@ -40,12 +40,12 @@ class App extends React.Component
       craft:"crochet",
       free:false,
       loweryardage:0,
-      upperyardage:0,
+      upperyardage:100000,
       yarnweight:"",
       foundbundle:[],
       selectedpattern:[],
       randomized:false,
-      patterndisplay: "Choose randomize to get a pattern!"
+      patterndisplay: <p>Choose params to find a pattern!</p>
     }
   }
 
@@ -114,25 +114,33 @@ class App extends React.Component
   }
 
   updateLowerLimit = (e) => {
-    this.setState({loweryardage: e.target.value});
+    if(e.target.value==""){
+      this.setState({loweryardage:0});
+    }
+    else{
+      this.setState({loweryardage: e.target.value});
+    }
   }
 
   updateUpperLimit = (e) => {
-    this.setState({upperyardage: e.target.value});
+    if(e.target.value==""){
+      this.setState({uppoeryardage:10000});
+    }
+    else{
+      this.setState({upperyardage: e.target.value});
+    }
   }
 
   weightSelect = (e) =>{
     this.setState({yarnweight: e.target.value})
   }
 
-  findPattern = (bundle_items) =>{
-    
-  }
 
   randomize = () => {
     let bundled_items = [];
     this.setState({selectedpattern:[]});
     this.setState({randomized: false});
+    this.setState({patterndisplay: <CircularProgress color="primary" sx={{ margin: 2 }}/>})
     const url = this.state.urlBase + "/people/"+this.state.account+"/bundles/"+this.state.selectedBundle.id+".json";
     const h = new Headers();
     h.append("Authorization", "Basic "+ (Buffer.from(this.state.authUsername+":"+this.state.authPassword).toString('base64')));
@@ -174,24 +182,24 @@ class App extends React.Component
       .then(responseData => {
         /* have the patterns now in responseData, just have to narrow down */
         let full_patterns = [];
-        console.log(responseData.patterns);
         for(var i in responseData.patterns){
           full_patterns.push(responseData.patterns[i]);
         }
         /* craft type search */        
         full_patterns = full_patterns.filter(pattern=>pattern.craft.permalink == this.state.craft);
         if(this.state.free==true){
-          full_patterns = full_patterns.filter(pattern=>pattern.free==this.state.free);
+          full_patterns = full_patterns.filter(pattern=>(pattern.free==this.state.free));
         }
-        if(this.state.upperyardage!=0 && this.state.loweryardage!=0){
-          full_patterns = full_patterns.filter(pattern=>(pattern.yardage <= this.state.upperyardage && pattern.yardage_max >= this.state.loweryardage));
-        }
+        console.log(full_patterns);
+        full_patterns = full_patterns.filter(pattern=>((pattern.yardage==null && pattern.yardage_max==null)||(pattern.yardage <= this.state.upperyardage && pattern.yardage_max >= this.state.loweryardage)));
+        console.log(full_patterns);
         if(this.state.yarnweight!=""){
-          full_patterns = full_patterns.filter(pattern=>pattern.yarn_weight.name == this.state.yarnweight);
+          full_patterns = full_patterns.filter(pattern=>((pattern.yarn_weight_description==null)||(pattern.yarn_weight.name == this.state.yarnweight)));
         }
+        console.log(full_patterns);
         let selected = full_patterns[Math.floor(Math.random()*(full_patterns.length))];
         if(selected==undefined){
-          this.setState({patterndisplay:"No patterns found with those params!"})
+          this.setState({patterndisplay:<p>No patterns found with those params!</p>})
         }
         else{
           this.setState({selectedpattern: selected});
@@ -212,10 +220,10 @@ class App extends React.Component
 
   render() 
   {
-    const weights = ["Thread", "Cobweb", "Lace", "Light Fingering", "Fingering", "Sport", "DK", "Worseted", "Aran", "Bulky", "Super Bulky", "Jumbo"];
+    const weights = ["Thread", "Cobweb", "Lace", "Light Fingering", "Fingering", "Sport", "DK", "Worsted", "Aran", "Bulky", "Super Bulky", "Jumbo"];
     let card;
     if(this.state.randomized==true){
-      card= <Card sx={{maxWidth: 500}} >
+      card=<Card sx={{maxWidth: 500, marginTop:"50px"}} >
               <CardMedia component="img" height="300" src={this.state.selectedpattern.photos[0].medium_url}/>
               <CardContent>
                 <Typography gutterBottom variant="h5" component="div">
@@ -227,7 +235,7 @@ class App extends React.Component
             </Card>;
     }
     else{
-      card=<p>{this.state.patterndisplay}</p>;
+      card=this.state.patterndisplay;
     }
     return (
       <div className="App">
@@ -296,8 +304,11 @@ class App extends React.Component
               </Grid2>
             </Grid2>
             <Button variant="contained" size="large" color="primary" onClick={this.randomize} display="flex" justifyContent="center" alignItems="center">Randomize!</Button>
-
-            {card}
+            <Grid2 container rowGap={1}>
+              <Grid2 xs>
+                {card}
+              </Grid2>
+            </Grid2>
           </header>
         </ThemeProvider>
       </div>
